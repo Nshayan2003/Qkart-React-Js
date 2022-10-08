@@ -10,8 +10,26 @@ import "./Register.css";
 import { useHistory, Link } from "react-router-dom";
 
 const Register = () => {
+  const history = useHistory();
   const { enqueueSnackbar } = useSnackbar();
+  const [Loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+  });
 
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  // TODO: CRIO_TASK_MODULE_REGISTER - Implement the register function
+
+  //const Register = () => {
+  //  const { enqueueSnackbar } = useSnackbar();
 
   /**
    * Definition for register handler
@@ -36,8 +54,35 @@ const Register = () => {
    * }
    */
   const register = async (formData) => {
+    if (!validateInput(formData)) return;
+    setLoading(true);
+    try {
+      await axios.post(`${config.endpoint}/auth/register`, {
+        username: formData.username,
+        password: formData.password,
+      });
+      setFormData({
+        username: "",
+        password: "",
+        confirmPassword: "",
+      });
+      setLoading(false);
+      enqueueSnackbar("Registed successfully", { variant: "success" });
+      history.push("/login");
+    } catch (e) {
+      setLoading(false);
+      if (e.response && e.response.status === 400) {
+        return enqueueSnackbar(e.response.data.message, { variant: "error" });
+      } else {
+        enqueueSnackbar(
+          "Something went wrong. Check that the backend is running, reachable and returns valid JSON.",
+          { variant: "error" }
+        );
+      }
+    }
   };
 
+  // TODO: CRIO_TASK_MODULE_REGISTER - Implement user input validation logic
   /**
    * Validate the input values so that any bad or illegal values are not passed to the backend.
    *
@@ -56,6 +101,31 @@ const Register = () => {
    * -    Check that confirmPassword field has the same value as password field - Passwords do not match
    */
   const validateInput = (data) => {
+    if (!data.username) {
+      enqueueSnackbar("username is a required field", { variant: "warning" });
+      return false;
+    }
+    if (data.username.length < 6) {
+      enqueueSnackbar("username be atleast 6 characters", {
+        variant: "warning",
+      });
+      return false;
+    }
+
+    if (!data.password) {
+      enqueueSnackbar("password is a required field", { variant: "warning" });
+      return false;
+    }
+    if (data.password.length < 6) {
+      enqueueSnackbar("password must be atleast 6 characters long", {
+        variant: "warning",
+      });
+    }
+    if (data.password !== data.confirmPassword) {
+      enqueueSnackbar("password do not match", { variant: "warning" });
+      return false;
+    }
+    return true;
   };
 
   return (
@@ -77,6 +147,8 @@ const Register = () => {
             name="username"
             placeholder="Enter Username"
             fullWidth
+            onChange={handleInputChange}
+            value={formData.username}
           />
           <TextField
             id="password"
@@ -87,6 +159,8 @@ const Register = () => {
             helperText="Password must be atleast 6 characters length"
             fullWidth
             placeholder="Enter a password with minimum 6 characters"
+            onChange={handleInputChange}
+            value={formData.password}
           />
           <TextField
             id="confirmPassword"
@@ -95,9 +169,29 @@ const Register = () => {
             name="confirmPassword"
             type="password"
             fullWidth
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
           />
+          {Loading ? (
+            <Box display="flex" justifyContent="centre" alignItems="centre">
+              <CircularProgress size={66} color="secondary" />
+            </Box>
+          ) : (
+            <Button
+              className="button"
+              variant="contained"
+              onClick={async () => {
+                await register(formData);
+              }}
+            >
+              Register Now
+            </Button>
+          )}
           <p className="secondary-action">
             Already have an account?{" "}
+            <Link className="link" to="/login">
+              Login here
+            </Link>
           </p>
         </Stack>
       </Box>
